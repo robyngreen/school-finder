@@ -1,0 +1,28 @@
+{
+  "name": "school-finder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "get-data.js",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "madison": "^1.0.2",
+    "mysql": "^2.15.0",
+    "node": "^8.3.0",
+    "node-geocoder": "^3.21.0",
+    "tinyreq": "^3.2.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robyngreen/school-finder.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/robyngreen/school-finder/issues"
+  },
+  "homepage": "https://github.com/robyngreen/school-finder#readme"
+}
