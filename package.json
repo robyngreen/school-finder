@@ -5,15 +5,22 @@
   "main": "get-data.js",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.2",
+    "limiter": "^1.1.2",
     "madison": "^1.0.2",
     "mysql": "^2.15.0",
+    "next": "^4.1.3",
     "node": "^8.3.0",
     "node-geocoder": "^3.21.0",
+    "react": "^16.0.0",
+    "react-dom": "^16.0.0",
     "tinyreq": "^3.2.6"
   },
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next && node server.js sf",
+    "build": "next build",
+    "start": "npm run build && node server.js sf",
+    "stop": "killall -SIGINT sf"
   },
   "repository": {
     "type": "git",
