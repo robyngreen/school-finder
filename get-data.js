@@ -62,7 +62,6 @@ function getStateData(item) {
           });
         }
         else {
-          console.log('data in database, getting there ' + item.name);
           returnData.markup = rawResults[0].raw_html;
           resolve(returnData);
         }
@@ -144,7 +143,8 @@ function getStateData(item) {
     //let insertPromises = [];
     let schoolOperations = [];
     let rawData = [];
-    let substates = states.slice(0, 10);
+    let substates = states.slice(0, 54);
+    //console.log(substates);
     console.log(substates);
 
     await Promise.all(substates.map(function(item) {
@@ -158,28 +158,24 @@ function getStateData(item) {
       connection.query('INSERT INTO state_data (raw_html, state, source) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [item.markup, item.sid, item.source], function (e, r) {
       });
       let $ = cheerio.load(item.markup);
-      console.log('================================================');
-      console.log('looking at state ' + item.sid);
       $('.list').each(function(index, element) {
         let schoolName = $('h2', element).text();
         let schoolInfo = $('p', element).html().split('<br>');
         let schoolAddress = schoolInfo[0] + ' ' + schoolInfo[2];
         let schoolAge = schoolInfo[3];
 
-        console.log('================================================');
         // As the brs are not formatted, attempt to match second line
         // addresses.
         let stateRegex = /^.*?, [a-zA-Z]{2} \d/;
         let stateResults = schoolInfo[1].match(stateRegex);
-        console.log('looking at ' + schoolInfo[1]);
+        //console.log('looking at ' + schoolInfo[1]);
         if (stateResults !== null) {
-          console.log('valid state');
+          //console.log('valid state');
           schoolAddress = schoolInfo[0] + ' ' + schoolInfo[1];
           schoolAge = schoolInfo[2];
         }
 
         // Begin parsing some regex.
-        // 420 students 5 - 12 years old
         let regex = /([0-9]+) students ([0-9\.]+)( weeks|) - ([0-9]+) years old/;
         let schoolResults = schoolAge.match(regex);
 
@@ -194,56 +190,56 @@ function getStateData(item) {
           schoolResults = ['', 0, 0, '', 0];
         }
 
-        // Skip testing data on live site.
-        if (schoolName === 'Test 2 Matthew School') {
+        // Skip testing data from site.
+        if (schoolName === 'Test 2 Matthew School' || schoolName === 'Hearts Gathered Waterfall School ') {
           return true;
         }
 
-        //console.log('schoolName: ' + schoolName);
-        //console.log('schoolAddress: ' + schoolAddress);
-        //console.log('schoolAge: ' + schoolAge);
-        //console.log('schoolResults: ' + schoolResults);
-
         let operation = new Promise(function(resolve, reject) {
-          //console.log('=====================[ GEO ]=====================');
-          //console.log(schoolAddress);substates
-          //
           // Do not geocode if state is already there.
           // @todo: if update param is used, ignore this.
           connection.query('SELECT id FROM school WHERE name = ? AND address = ?', [schoolName, schoolAddress], function (existsError, existsID) {
             if (existsID.length === 0) {
-              geocoder.geocode(schoolAddress).then(function(res) {
-                let results = res[0];
-                //console.log(results);
-                let lat = results.latitude;
-                let lon = results.longitude;
-                let city = results.city;
-                let state = results.administrativeLevels.level1short;
-
-                var limiter = new RateLimiter(45, 'second');
-
-                limiter.removeTokens(1, function(err, remainingRequests) {
-                });
-
-                connection.query('INSERT INTO city (name, state) VALUES (?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [city, item.sid], function (cityError, cityResults) {
-                  if (cityError) {
-                    console.log(cityError);
+              // Google has a 50 req/s limit. Throttle these requests.
+              let limiter = new RateLimiter(45, 'second');
+              limiter.removeTokens(1, function(err, remainingRequests) {
+                geocoder.geocode(schoolAddress).then(function(res) {
+                  let results = res[0];
+                  let lat = results.latitude;
+                  let lon = results.longitude;
+                  let city = results.city;
+                  if (city === undefined) {
+                    city = results.extra.neighborhood;
                   }
-                  let cid = cityResults.insertId;
-                  let school = {
-                    'name': schoolName,
-                    'address': schoolAddress,
-                    'city': cid,
-                    'latitude': lat,
-                    'longitude': lon,
-                    'startage': schoolResults[2],
-                    'endage': schoolResults[4],
-                    'num_students': schoolResults[1],
-                    'type': 'montessori'
-                  }
-                  connection.query('INSERT INTO school SET ? ON DUPLICATE KEY UPDATE startage = ?, endage = ?, num_students = ?', [school, schoolResults[2], schoolResults[4], schoolResults[1]], function (schoolError, schoolResults) {
-                    resolve();
+                  let state = results.administrativeLevels.level1short;
+
+                  connection.query('INSERT INTO city (name, state) VALUES (?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [city, item.sid], function (cityError, cityResults) {
+                    if (cityError) {
+                      console.log('Error on ' + city);
+                      console.log(results);
+                      console.log(cityError);
+                    }
+                    let cid = cityResults.insertId;
+                    let school = {
+                      'name': schoolName,
+                      'address': schoolAddress,
+                      'city': cid,
+                      'latitude': lat,
+                      'longitude': lon,
+                      'startage': schoolResults[2],
+                      'endage': schoolResults[4],
+                      'num_students': schoolResults[1],
+                      'type': 'montessori'
+                    }
+                    connection.query('INSERT INTO school SET ? ON DUPLICATE KEY UPDATE startage = ?, endage = ?, num_students = ?', [school, schoolResults[2], schoolResults[4], schoolResults[1]], function (schoolError, schoolResults) {
+                      resolve();
+                    });
                   });
+                })
+                .catch(function(err) {
+                  console.log('Geocoding error for ' + schoolName + ' at ' + schoolAddress);
+                  console.log(err);
+                  resolve();
                 });
               });
             }
