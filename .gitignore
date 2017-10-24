@@ -60,4 +60,4 @@ typings/
 .env
 
 # Next.js stuff
-.next
+.next/
