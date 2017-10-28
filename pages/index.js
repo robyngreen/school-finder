@@ -1,4 +1,5 @@
 import SchoolMap from "../components/SchoolMap";
+import Header from "../components/Header";
 import Head from 'next/head';
 
 export default () => (
@@ -35,6 +36,7 @@ export default () => (
         color: #000;
       }
     `}</style>
+    <Header />
     <SchoolMap />
   </div>
 );

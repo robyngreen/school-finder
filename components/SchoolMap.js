@@ -1,9 +1,7 @@
 'use strict';
 
 import React from 'react';
-import { compose, withProps, withStateHandlers } from "recompose";
-import { withScriptjs, withGoogleMap, GoogleMap, Marker, InfoWindow } from 'react-google-maps';
-import MarkerClusterer from "react-google-maps/lib/components/addons/MarkerClusterer";
+import GoogleMap from 'google-map-react';
 import fetch from 'isomorphic-fetch';
 import polyfill from 'es6-promise';
 polyfill.polyfill();
@@ -19,7 +17,8 @@ export default class SchoolMap extends React.Component {
         lat: 39,
         lng: -95
       },
-      zoom: 3
+      zoom: 3,
+      schools: null
     };
   }
 
@@ -37,56 +36,72 @@ export default class SchoolMap extends React.Component {
       });
   }
 
-  render() {
-    const MyMapComponent = compose(
-      withProps({
-        googleMapURL: "https://maps.googleapis.com/maps/api/js?v=3&key=" + this.state.key + "&libraries=geometry,drawing,places",
-        loadingElement: <div style={{ height: `100%` }} />,
-        containerElement: <div style={{ height: `400px` }} />,
-        mapElement: <div style={{ height: `100%` }} />,
-      }),
-      withScriptjs,
-      withGoogleMap,
-      withStateHandlers(() => ({
-        isOpen: false,
-      }), {
-        onToggleOpen: ({ isOpen }) => () => ({
-          isOpen: !isOpen,
-        })
-      }),
-    )((props) =>
-      <GoogleMap
-        defaultZoom={this.state.zoom}
-        defaultCenter={this.state.center}
-      >
-        <MarkerClusterer
-          averageCenter
-          enableRetinaIcons
-          gridSize={20}
-        >
-          {props.markers.map(marker => (
-            <Marker
-              key={marker.id}
-              position={{ lat: marker.latitude, lng: marker.longitude }}
-              onClick={props.onToggleOpen}
-            >
-              {props.isOpen && <InfoWindow onCloseClick={props.onToggleOpen}>
-               <div>
-                 <div>{marker.name}</div>
-                 <div>Number of Students: {marker.num_students}</div>
-                 <div>Max Age: {marker.endage}</div>
-              </div>
-              </InfoWindow>}
-            </Marker>
-          ))}
-        </MarkerClusterer>
-      </GoogleMap>
-    );
+  renderMarkers(map, maps) {
+    let circle = {
+        path: maps.SymbolPath.CIRCLE,
+        fillColor: 'red',
+        fillOpacity: .5,
+        scale: 3.25,
+        strokeColor: 'white',
+        strokeWeight: .75
+    };
+    this.state.schools.map(marker => {
+      // Change the color depending upon school size.
+      circle.fillColor = 'red';
+      if (marker.num_students < 25) {
+        circle.fillColor = 'green';
+      }
+      else if (marker.num_students < 75) {
+        circle.fillColor = 'blue';
+      }
+      else if (marker.num_students < 125) {
+        circle.fillColor = 'yellow';
+      }
+      // Setup the info window.
+      let ContentString = '<div>' + marker.name + '</div><div>Number of Students: ' + marker.num_students + '</div><div>Max Age: ' + marker.endage + '</div>';
+      let InfoWindow = new google.maps.InfoWindow({
+        content: ContentString
+      });
+      let SchoolMarker = new maps.Marker({
+        position: {
+          lat: marker.latitude,
+          lng: marker.longitude
+        },
+        map,
+        title: marker.name,
+        icon: circle
+      });
+      SchoolMarker.addListener('click', function() {
+        InfoWindow.open(map, SchoolMarker);
+      });
+    });
+  }
 
+  render() {
+    if (this.state.schools === null) {
+      // @todo: loading here
+      return '';
+    }
     return (
       <div className="map">
         <div className="mapContainer">
-          <MyMapComponent markers={this.state.schools} />
+          <GoogleMap
+            bootstrapURLKeys={{ key: this.state.key }}
+            className="map"
+            center={this.state.center}
+            defaultZoom={this.state.zoom}
+            onGoogleApiLoaded={({map, maps}) => this.renderMarkers(map, maps)}
+            yesIWantToUseGoogleMapApiInternals
+          >
+          </GoogleMap>
+        </div>
+        <div className="legend">
+          <ul>
+            <li className="green">25 students or less</li>
+            <li className="blue">75 students or less</li>
+            <li className="yellow">125 students or less</li>
+            <li className="red">More than 125 students</li>
+          </ul>
         </div>
         <style jsx>{`
           .map {
@@ -94,10 +109,71 @@ export default class SchoolMap extends React.Component {
             height: 300px;
             margin: 2em auto;
           }
+
           .mapContainer {
             width: 100%;
             height: 100%;
+            border: 1px solid black;
           }
+
+          .legend {
+
+          }
+
+          .legend ul {
+            display: flex;
+            flex-flow: row wrap;
+          }
+
+          .legend li {
+            flex: 0 0 50%;
+            position: relative;
+            list-style: none;
+          }
+
+          .legend li:before {
+            display: block;
+            width: 7px;
+            height: 7px;
+            content: ' ';
+            position: absolute;
+            top: 35%;
+            left: -15px;
+            border-radius: 7px;
+          }
+
+          .legend .red {
+
+          }
+
+          .legend .red:before {
+            background: red;
+          }
+
+          .legend .blue {
+
+          }
+
+          .legend .blue:before {
+            background: blue;
+          }
+
+          .legend .yellow {
+
+          }
+
+          .legend .yellow:before {
+            background: yellow;
+          }
+
+          .legend .green {
+
+          }
+
+          .legend .green:before {
+            background: green;
+          }
+
         `}</style>
       </div>
     );
