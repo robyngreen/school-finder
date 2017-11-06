@@ -1,10 +1,17 @@
 'use strict';
 
 import React from 'react';
+import Select from 'react-select';
+import selectCSS from 'react-select/dist/react-select.css';
 
 export default class Filter extends React.Component {
   constructor () {
     super();
+
+    // Set defaults.
+    this.state = {
+      states: []
+    };
   }
 
   /**
@@ -16,23 +23,48 @@ export default class Filter extends React.Component {
       .then(function(data) {
         data.json()
           .then(function(jsonData) {
-            self.setState({states: jsonData});
+            let stateValues = [];
+            let item;
+            for (item in jsonData) {
+              stateValues.push({
+                value: jsonData[item].id,
+                label: jsonData[item].name
+              });
+            }
+            //self.setState({states: jsonData});
+            self.setState({states: stateValues});
           });
       });
   }
 
   render() {
+    // Catch for not rendering too early.
+    if (this.state.states === null) {
+      // @todo: loading here
+      return '';
+    }
+
     // this.props.schools
     return (
       <div className="filter">
         <div className="filter-container">
+          <Select
+            name="form-field-states"
+            value="State"
+            options={this.state.states}
+          />
         </div>
 
-        <style jsx>{`
-          .filter {
-          }
+        <style global jsx>
+          { selectCSS }
+        </style>
+        <style jsx>
+          {`
+            .filter {
 
-        `}</style>
+            }
+          `}
+        </style>
       </div>
     );
   }

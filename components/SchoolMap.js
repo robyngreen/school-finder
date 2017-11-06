@@ -40,7 +40,7 @@ export default class SchoolMap extends React.Component {
         lng: -95
       },
       zoom: 3,
-      schools: null
+      schools: []
     };
   }
 
@@ -122,7 +122,7 @@ export default class SchoolMap extends React.Component {
                 if (index === levels.length - 1) {
                   text = `More than ${level.min} students`;
                 }
-                return <li className={ level.color }>{ text }</li>;
+                return <li key={index} className={ level.color }>{ text }</li>;
               })
             }
           </ul>
