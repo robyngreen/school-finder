@@ -26,6 +26,10 @@ export default class Header extends React.Component {
             border-bottom: 1px solid black;
           }
 
+          .header h1 {
+            margin: 0 0 0 1.5rem;
+            color: white;
+          }
 
         `}</style>
       </div>
