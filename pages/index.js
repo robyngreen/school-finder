@@ -1,3 +1,5 @@
+'use strict';
+
 import SchoolMap from "../components/SchoolMap";
 import Header from "../components/Header";
 import Head from 'next/head';
@@ -35,6 +37,7 @@ export default () => (
         letter-spacing: -0.04rem;
         color: #000;
       }
+
     `}</style>
     <Header />
     <SchoolMap />

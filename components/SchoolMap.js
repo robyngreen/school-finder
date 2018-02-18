@@ -1,10 +1,32 @@
 'use strict';
 
 import React from 'react';
+import Filter from "../components/Filter";
 import GoogleMap from 'google-map-react';
 import fetch from 'isomorphic-fetch';
 import polyfill from 'es6-promise';
 polyfill.polyfill();
+
+let levels = [{
+    'min': 1,
+    'max': 25,
+    'color': 'green'
+  },
+  {
+    'min': 26,
+    'max': 75,
+    'color': 'blue'
+  },
+  {
+    'min': 76,
+    'max': 125,
+    'color': 'yellow'
+  },
+  {
+    'min': 126,
+    'max': 9999,
+    'color': 'red'
+}];
 
 export default class SchoolMap extends React.Component {
 
@@ -18,7 +40,7 @@ export default class SchoolMap extends React.Component {
         lng: -95
       },
       zoom: 3,
-      schools: null
+      schools: []
     };
   }
 
@@ -34,6 +56,8 @@ export default class SchoolMap extends React.Component {
             self.setState({schools: jsonData});
           });
       });
+
+    //events.subscribe('clicked-button', this.toogleVisibility)
   }
 
   renderMarkers(map, maps) {
@@ -46,16 +70,11 @@ export default class SchoolMap extends React.Component {
         strokeWeight: .75
     };
     this.state.schools.map(marker => {
-      // Change the color depending upon school size.
-      circle.fillColor = 'red';
-      if (marker.num_students < 25) {
-        circle.fillColor = 'green';
-      }
-      else if (marker.num_students < 75) {
-        circle.fillColor = 'blue';
-      }
-      else if (marker.num_students < 125) {
-        circle.fillColor = 'yellow';
+      for (let i = 0; i < levels.length; i++) {
+        if (marker.num_students >= levels[i].min && marker.num_students <= levels[i].max) {
+          circle.fillColor = levels[i].color;
+          break;
+        }
       }
       // Setup the info window.
       let ContentString = '<div>' + marker.name + '</div><div>Number of Students: ' + marker.num_students + '</div><div>Max Age: ' + marker.endage + '</div>';
@@ -97,12 +116,18 @@ export default class SchoolMap extends React.Component {
         </div>
         <div className="legend">
           <ul>
-            <li className="green">25 students or less</li>
-            <li className="blue">75 students or less</li>
-            <li className="yellow">125 students or less</li>
-            <li className="red">More than 125 students</li>
+            {
+              levels.map(function(level, index) {
+                let text = `${level.max} students or less`;
+                if (index === levels.length - 1) {
+                  text = `More than ${level.min} students`;
+                }
+                return <li key={index} className={ level.color }>{ text }</li>;
+              })
+            }
           </ul>
         </div>
+        <Filter schools={this.state.schools} />
         <style jsx>{`
           .map {
             width: 88%;
